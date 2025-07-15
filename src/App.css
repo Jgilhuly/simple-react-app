@@ -32,6 +32,32 @@ body {
   letter-spacing: -0.025em;
 }
 
+.export-button {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 1rem;
+}
+
+.export-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+}
+
+.export-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .dashboard-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
