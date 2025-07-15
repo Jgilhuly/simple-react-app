@@ -11,6 +11,30 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const handleBulkExport = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/bulk-export');
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const timestamp = new Date().toISOString().split('T')[0];
+      a.download = `dashboard-export-${timestamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Export failed: ' + err.message);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -59,6 +83,9 @@ const App = () => {
     <div className="dashboard">
       <header className="dashboard-header">
         <h1>Product Analytics Dashboard</h1>
+        <button onClick={handleBulkExport} className="export-button">
+          Export Data
+        </button>
       </header>
       
       <div className="dashboard-content">

@@ -51,6 +51,54 @@ app.get('/api/sales-over-time', (req, res) => {
   });
 });
 
+app.get('/api/bulk-export', (req, res) => {
+  const exportData = {
+    metrics: null,
+    activities: [],
+    products: [],
+    salesOverTime: []
+  };
+
+  db.get('SELECT * FROM metrics ORDER BY id DESC LIMIT 1', (err, metricsRow) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    exportData.metrics = metricsRow;
+
+    db.all('SELECT * FROM activities ORDER BY id DESC', (err, activitiesRows) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      exportData.activities = activitiesRows;
+
+      db.all('SELECT * FROM products ORDER BY sales DESC', (err, productsRows) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        exportData.products = productsRows;
+
+        db.all('SELECT * FROM sales_over_time ORDER BY date', (err, salesRows) => {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          exportData.salesOverTime = salesRows;
+
+          const timestamp = new Date().toISOString().split('T')[0];
+          const filename = `dashboard-export-${timestamp}.json`;
+          
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+          res.json(exportData);
+        });
+      });
+    });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 
