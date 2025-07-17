@@ -10,6 +10,8 @@ const App = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +54,38 @@ const App = () => {
     fetchData();
   }, []);
 
+  const handleExport = async (format, selectedTypes) => {
+    setExportLoading(true);
+    try {
+      const types = selectedTypes.length > 0 ? selectedTypes.join(',') : 'all';
+      const response = await fetch(`http://localhost:3001/api/export?format=${format}&types=${types}`);
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const timestamp = new Date().toISOString().split('T')[0];
+      const extension = format === 'csv' ? 'csv' : 'json';
+      a.download = `dashboard-export-${timestamp}.${extension}`;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      setShowExportModal(false);
+    } catch (err) {
+      alert('Export failed: ' + err.message);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   if (loading) return <div className="loading">Loading...</div>;
   if (error) return <div className="error">Error: {error}</div>;
 
@@ -59,6 +93,12 @@ const App = () => {
     <div className="dashboard">
       <header className="dashboard-header">
         <h1>Product Analytics Dashboard</h1>
+        <button 
+          className="export-button"
+          onClick={() => setShowExportModal(true)}
+        >
+          📊 Export Data
+        </button>
       </header>
       
       <div className="dashboard-content">
@@ -103,6 +143,108 @@ const App = () => {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {showExportModal && (
+        <ExportModal 
+          onExport={handleExport}
+          onClose={() => setShowExportModal(false)}
+          loading={exportLoading}
+        />
+      )}
+    </div>
+  );
+};
+
+const ExportModal = ({ onExport, onClose, loading }) => {
+  const [format, setFormat] = useState('csv');
+  const [selectedTypes, setSelectedTypes] = useState(['metrics', 'activities', 'products', 'sales']);
+
+  const dataTypes = [
+    { id: 'metrics', label: 'Key Metrics' },
+    { id: 'activities', label: 'User Activities' },
+    { id: 'products', label: 'Products Data' },
+    { id: 'sales', label: 'Sales Over Time' }
+  ];
+
+  const handleTypeToggle = (typeId) => {
+    setSelectedTypes(prev => 
+      prev.includes(typeId) 
+        ? prev.filter(id => id !== typeId)
+        : [...prev, typeId]
+    );
+  };
+
+  const handleExport = () => {
+    if (selectedTypes.length === 0) {
+      alert('Please select at least one data type to export');
+      return;
+    }
+    onExport(format, selectedTypes);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>Export Dashboard Data</h2>
+          <button className="close-button" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="modal-body">
+          <div className="export-section">
+            <h3>Export Format</h3>
+            <div className="format-options">
+              <label>
+                <input
+                  type="radio"
+                  value="csv"
+                  checked={format === 'csv'}
+                  onChange={(e) => setFormat(e.target.value)}
+                />
+                CSV (Spreadsheet)
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  value="json"
+                  checked={format === 'json'}
+                  onChange={(e) => setFormat(e.target.value)}
+                />
+                JSON (Data)
+              </label>
+            </div>
+          </div>
+
+          <div className="export-section">
+            <h3>Data to Export</h3>
+            <div className="data-type-options">
+              {dataTypes.map(type => (
+                <label key={type.id}>
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes(type.id)}
+                    onChange={() => handleTypeToggle(type.id)}
+                  />
+                  {type.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button className="cancel-button" onClick={onClose}>
+            Cancel
+          </button>
+          <button 
+            className="export-button-modal" 
+            onClick={handleExport}
+            disabled={loading}
+          >
+            {loading ? 'Exporting...' : 'Export Data'}
+          </button>
         </div>
       </div>
     </div>
